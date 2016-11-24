@@ -83,7 +83,7 @@ y = tf.sparse_to_dense(decoded[0].indices, decoded[0].shape, decoded[0].values) 
 # regcognize wave file
 #
 
-# command line argument
+# command line argument for input wave file path
 tf.sg_arg_def(file=('', 'speech wave file to recognize.'))
 
 # load wave file
