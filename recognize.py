@@ -11,9 +11,6 @@ __author__ = 'buriburisuri@gmail.com'
 # set log level to debug
 tf.sg_verbosity(10)
 
-# command line argument
-tf.sg_arg_def(file=('', 'speech wave file to recognize.'))
-
 #
 # hyper parameters
 #
@@ -85,6 +82,9 @@ y = tf.sparse_to_dense(decoded[0].indices, decoded[0].shape, decoded[0].values) 
 #
 # regcognize wave file
 #
+
+# command line argument
+tf.sg_arg_def(file=('', 'speech wave file to recognize.'))
 
 # load wave file
 wav, sr = librosa.load(tf.sg_arg().file, mono=True)
