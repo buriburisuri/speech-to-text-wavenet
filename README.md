@@ -9,9 +9,13 @@ Second, they added a mean-pooling layer to the dilated convolution layer for dow
 
 Third, since TIMIT has phoneme labels, they train the model with losses of phoneme classification and next phoneme prediction. I used one CTC loss because VCTK provides sentence-level labels. Therefore, there was no reason to use causal conv1d, so only dilated conv1d was used.
 
-Finally, quantitative analysis such as BLEU score and character level language model are omitted by my time constraint.
+Finally, quantitative analysis such as BLEU score and language model are omitted by my time constraint.
 
 The final architecture is shown in the following figure.
+<p align="center">
+  <img src="https://raw.githubusercontent.com/buriburisuri/speech-to-text-wavenet/master/png/architecture.png" width="1024"/>
+</p>
+(Some images are cropped from [WaveNet: A Generative Model for Raw Audio](https://arxiv.org/abs/1609.03499) and [Neural Machine Translation in Linear Time](https://arxiv.org/abs/1610.10099))  
 
 
 ## Dependencies
@@ -34,7 +38,10 @@ python train.py
 to train the network. You can see the result ckpt files and log files in the 'asset/train' directory.
 Launch tensorboard --logdir asset/train/log to monitor training process.
 
-I've trained this model on a single Titan X GPU during 45 hours until 30 epochs. If you don't have a Titan X GPU, reduce batch_size in the train.py file from 16 to 4.  
+I've trained this model on a single Titan X GPU during 45 hours until 30 epochs and the model ended with 10.8 ctc loss. If you don't have a Titan X GPU, reduce batch_size in the train.py file from 16 to 4.  
+<p align="center">
+  <img src="https://raw.githubusercontent.com/buriburisuri/speech-to-text-wavenet/master/png/loss.png" width="1024"/>
+</p>
 
 ## Speech wave file to text
  
@@ -46,7 +53,7 @@ to transform speech wave file to English sentence. The result will be printed on
 
 For example, try the following command.
 <pre><code>
-python recognize.py --file asset/data/wav48/p225/p225_002.wav
+python recognize.py --file asset/data/wav48/p225/p225_003.wav
 </code></pre>
 
 The result will be as follows:
@@ -59,7 +66,7 @@ The ground truth is as follows:
 Six spoons of fresh snow peas, five thick slabs of blue cheese, and maybe a snack for her brother Bob.
 </code></pre>
 
-As mentioned earlier, there is no character level language model, so there are some cases where capital letters, punctuations, and misspelled words.
+As mentioned earlier, there is no language model, so there are some cases where capital letters, punctuations, and words are misspelled.
 
 ## pre-trained models
 
@@ -82,4 +89,6 @@ Extract [the following zip file](https://drive.google.com/file/d/0B3ILZKxzcrUydk
 1. [ByteNet-Fast Neural Machine Translation](https://github.com/buriburisuri/ByteNet)
 
 # Authors
+
 Namju Kim (buriburisuri@gmail.com) at Jamonglabs Co., Ltd.
+Kyubyong Park (kbpark@jamonglab.com) at Jamonglabs Co., Ltd.

@@ -106,6 +106,7 @@ class VCTK(object):
         return label, wav_file
 
     def print_index(self, indices):
+        # transform label index to character
         for i, index in enumerate(indices):
             str_ = ''
             for ch in index:
