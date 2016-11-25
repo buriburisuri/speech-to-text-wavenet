@@ -51,7 +51,7 @@ We've trained this model on a single Titan X GPU during 30 hours until 20 epochs
  
 Execute
 <pre><code>
-python recognize.py --file <wave_file path>
+python recognize.py --file wave_file_path
 </code></pre>
 to transform a speech wave file to the English sentence. The result will be printed on the console. 
 
@@ -72,7 +72,7 @@ Six spoons of fresh snow peas, five thick slabs of blue cheese, and maybe a snac
 
 As mentioned earlier, there is no language model, so there are some cases where capital letters, punctuations, and words are misspelled.
 
-## pre-trained models
+## Pre-trained models
 
 You can transform a speech wave file to English text with the pre-trained model on the VCTK corpus. 
 Extract [the following zip file](https://drive.google.com/open?id=0B3ILZKxzcrUyVWwtT25FemZEZ1k) to the 'asset/train/ckpt/' directory.
@@ -80,7 +80,7 @@ Extract [the following zip file](https://drive.google.com/open?id=0B3ILZKxzcrUyV
 ## Other resources
 
 1. [ibab's WaveNet(speech synthesis) tensorflow implementation](https://github.com/ibab/tensorflow-wavenet)
-1. [tomlepaine's Fast WaveNet(speech synthesis) tensorflow implementation](https://github.com/ibab/tensorflow-wavenet)
+1. [tomlepaine's Fast WaveNet(speech synthesis) tensorflow implementation](https://github.com/tomlepaine/fast-wavenet)
 
 ## My other repositories
 
@@ -95,4 +95,17 @@ Extract [the following zip file](https://drive.google.com/open?id=0B3ILZKxzcrUyV
 # Authors
 
 Namju Kim (buriburisuri@gmail.com) at Jamonglabs Co., Ltd.
+
 Kyubyong Park (kbpark@jamonglab.com) at Jamonglabs Co., Ltd.
+
+## Citation
+
+If you find this code useful please cite us in your work:
+
+```
+@inproceedings{Namju2016SpeechToTextWaveNet,
+  title={Speech-to-Text-WaveNet : End-to-end sentence level English speech recognition using DeepMind's WaveNet},
+  author={Namju Kim and Kyubyong Park},
+  year={2016}
+}
+```
