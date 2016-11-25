@@ -11,9 +11,9 @@ First, while the Paper used the TIMIT dataset for the speech recognition experim
 
 Second, the Paper added a mean-pooling layer after the dilated convolution layer for down-sampling. We extracted [MFCC](https://en.wikipedia.org/wiki/Mel-frequency_cepstrum) from wav files and removed the final mean-pooling layer because the original setting was impossible to run on our TitanX GPU.
 
-Third, since the TIMIT dataset has phoneme labels, the Paper trained the model with two loss terms, phoneme classification and next phoneme prediction. We, instead, used a single CTC loss because VCTK provides sentence-level labels. As a result, we used only dilated conv1d layers without any dilated conv1d layers.
+Third, since the TIMIT dataset has phoneme labels, the Paper trained the model with two loss terms, phoneme classification and next phoneme prediction. We, instead, used a single CTC loss because VCTK provides sentence-level labels. As a result, we used only dilated conv1d layers without any causal conv1d layers.
 
-Finally, we didn't do quantitative analyses such as BLEU score and post-processing by combining a language model due to the time constraints.
+Finally, we didn't do quantitative analyses such as WER/CER/PER and post-processing by combining a language model due to the time constraints.
 
 The final architecture is shown in the following figure.
 <p align="center">
@@ -42,7 +42,7 @@ python train.py
 to train the network. You can see the result ckpt files and log files in the 'asset/train' directory.
 Launch tensorboard --logdir asset/train/log to monitor training process.
 
-We've trained this model on a single Titan X GPU during 30 hours until 20 epochs and the model stopped at 19.8 ctc loss. If you don't have a Titan X GPU, reduce batch_size in the train.py file from 16 to 4.  
+We've trained this model on a single Titan X GPU during 30 hours until 20 epochs and the model stopped at 13.4 ctc loss. If you don't have a Titan X GPU, reduce batch_size in the train.py file from 16 to 4.  
 <p align="center">
   <img src="https://raw.githubusercontent.com/buriburisuri/speech-to-text-wavenet/master/png/loss.png" width="1024"/>
 </p>
@@ -62,7 +62,7 @@ python recognize.py --file asset/data/wav48/p225/p225_003.wav
 
 The result will be as follows:
 <pre><code>
-six spons of fresh snow peas five thick slbs of blue these and maybe a stack for her brother bob
+six spoons of fresh now peas five thick slbs of blue cheese and maybe a snack for her brother bob
 </code></pre>
 
 The ground truth is as follows:
@@ -75,7 +75,7 @@ As mentioned earlier, there is no language model, so there are some cases where 
 ## pre-trained models
 
 You can transform a speech wave file to English text with the pre-trained model on the VCTK corpus. 
-Extract [the following zip file](https://drive.google.com/file/d/0B3ILZKxzcrUydklJTXgyRzRwUzQ/view?usp=sharing) to the 'asset/train/ckpt/' directory.
+Extract [the following zip file](https://drive.google.com/open?id=0B3ILZKxzcrUyVWwtT25FemZEZ1k) to the 'asset/train/ckpt/' directory.
 
 ## Other resources
 
