@@ -93,6 +93,9 @@ Extract [the following zip file](https://drive.google.com/file/d/0B3ILZKxzcrUydk
 1. [ByteNet-Fast Neural Machine Translation](https://github.com/buriburisuri/ByteNet)
 
 ## Citation
+
+If you find this code useful please cite us in your work:
+
 <pre><code>
 Kim and Park. Speech-to-Text-WaveNet. 2016. GitHub repository. https://github.com/buriburisuri/.
 </code></pre>
@@ -100,4 +103,6 @@ Kim and Park. Speech-to-Text-WaveNet. 2016. GitHub repository. https://github.co
 # Authors
 
 Namju Kim (buriburisuri@gmail.com) at Jamonglabs Co., Ltd.
+
 Kyubyong Park (kbpark@jamonglab.com) at Jamonglabs Co., Ltd.
+
