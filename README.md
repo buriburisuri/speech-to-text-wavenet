@@ -28,6 +28,7 @@ The final architecture is shown in the following figure.
 1. [sugartensor](https://github.com/buriburisuri/sugartensor) >= 0.0.1.9
 1. [pandas](http://pandas.pydata.org/pandas-docs/stable/install.html) >= 0.19.1
 1. [librosa](https://github.com/librosa/librosa) >= 0.4.3
+1. [tqdm] (https://github.com/tqdm/tqdm) >= 4.10.0
 
 ## Dataset
 
