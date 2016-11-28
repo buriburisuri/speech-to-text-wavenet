@@ -30,6 +30,12 @@ The final architecture is shown in the following figure.
 1. [librosa](https://github.com/librosa/librosa) >= 0.4.3
 1. [tqdm] (https://github.com/tqdm/tqdm) >= 4.10.0
 
+To install the required python packages ( except TensorFlow ), run
+
+```
+pip install -r requirements.txt
+```
+
 ## Dataset
 
 We used only 36,395 sentences in the VCTK corpus with a length of more than 5 seconds to prevent CTC loss errors. VCTK corpus can be downloaded from [http://homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz](http://homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz). After downloading, extract the 'VCTK-Corpus.tar.gz' file to the 'asset/data/' directory.
