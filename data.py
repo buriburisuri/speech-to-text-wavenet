@@ -10,11 +10,12 @@ import itertools
 
 
 __author__ = 'buriburisuri@gmail.com'
+__vocabulary_save_dir__ = "asset/train/"
 
 
 class VCTK(object):
 
-    def __init__(self, batch_size=16, data_path='asset/data/'):
+    def __init__(self, batch_size=16, data_path='asset/data/', vocabulary_loading=False):
 
         @tf.sg_producer_func
         def _load_mfcc(src_list):
@@ -27,6 +28,18 @@ class VCTK(object):
             mfcc = librosa.feature.mfcc(wav, sr)
             # return result
             return lab, mfcc
+
+        # path for loading just vocabulary
+        if vocabulary_loading:
+            vocabulary_file = __vocabulary_save_dir__ + self.__class__.__name__ + '_vocabulary.npy'
+            if os.path.exists(vocabulary_file):
+                self.index2byte = np.load(vocabulary_file)
+                self.byte2index = {}
+                for i, b in enumerate(self.index2byte):
+                    self.byte2index[b] = i
+                self.voca_size = len(self.index2byte)
+                tf.sg_info('VCTK vocabulary loaded.')
+                return
 
         # load corpus
         labels, wave_files = self._load_corpus(data_path)
@@ -96,6 +109,11 @@ class VCTK(object):
             self.byte2index[b] = i
         self.voca_size = len(self.index2byte)
         self.max_len = np.max([len(s) for s in sents])
+
+        # save vocabulary
+        vocabulary_file = __vocabulary_save_dir__ + self.__class__.__name__ + '_vocabulary.npy'
+        if not os.path.exists(vocabulary_file):
+            np.save(vocabulary_file, self.index2byte)
 
         # byte to index label
         label = []
