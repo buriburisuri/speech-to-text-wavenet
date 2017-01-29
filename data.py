@@ -111,7 +111,14 @@ class VCTK(object):
         self.max_len = np.max([len(s) for s in sents])
 
         # save vocabulary
-        vocabulary_file = __vocabulary_save_dir__ + self.__class__.__name__ + '_vocabulary.npy'
+        vocabulary_dir = __vocabulary_save_dir__ + self.__class__.__name__
+        if not os.path.exists(os.path.dirname(vocabulary_dir)):
+            try:
+                os.makedirs(os.path.dirname(vocabulary_dir))
+            except OSError as exc: # Guard against race condition
+                if exc.errno != errno.EEXIST:
+                    raise
+        vocabulary_file = vocabulary_dir + '_vocabulary.npy'
         if not os.path.exists(vocabulary_file):
             np.save(vocabulary_file, self.index2byte)
 
