@@ -89,7 +89,7 @@ class VCTK(object):
         # exclude extremely short wave files
         file_id, wav_file = [], []
         for i, w in zip(file_ids, wav_files):
-            if os.stat(w).st_size > 240000:  # at least 5 seconds
+            if librosa.core.get_duration(filename=w) > 5: #at least 5 seconds
                 file_id.append(i)
                 wav_file.append(w)
 
