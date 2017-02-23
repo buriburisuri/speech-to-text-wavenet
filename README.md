@@ -24,11 +24,10 @@ The final architecture is shown in the following figure.
 
 ## Dependencies
 
-1. [tensorflow](https://www.tensorflow.org/versions/r0.11/get_started/os_setup.html#pip-installation) >= 0.11
-1. [sugartensor](https://github.com/buriburisuri/sugartensor) >= 0.0.1.9
-1. [pandas](http://pandas.pydata.org/pandas-docs/stable/install.html) >= 0.19.1
-1. [librosa](https://github.com/librosa/librosa) >= 0.4.3
-1. [tqdm] (https://github.com/tqdm/tqdm) >= 4.10.0
+1. [tensorflow](https://www.tensorflow.org/versions/r0.11/get_started/os_setup.html#pip-installation) == 1.0.0
+1. [sugartensor](https://github.com/buriburisuri/sugartensor) >= 1.0.0.0
+1. [pandas](http://pandas.pydata.org/pandas-docs/stable/install.html) >= 0.19.2
+1. [librosa](https://github.com/librosa/librosa) >= 0.5.0
 
 To install the required python packages ( except TensorFlow ), run
 

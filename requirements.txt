@@ -1,4 +1,3 @@
-sugartensor>=0.0.1.9
-pandas>=0.19.1
-librosa>=0.4.3
-tqdm>=4.10.0
+sugartensor==1.0.0.0
+pandas==0.19.2
+librosa==0.5.0
