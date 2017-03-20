@@ -1,10 +1,10 @@
 import numpy as np
 import pandas as pd
 import glob
-import os
-import string
-import itertools
-import pickle
+import csv
+import librosa
+import scikits.audiolab
+import data
 
 
 __author__ = 'namju.kim@kakaobrain.com'
@@ -13,42 +13,222 @@ __author__ = 'namju.kim@kakaobrain.com'
 # data path
 _data_path = "asset/data/"
 
-# read meta-info
-df = pd.read_table(_data_path + 'speaker-info.txt', usecols=['ID', 'AGE', 'GENDER', 'ACCENTS'],
-                   index_col=False, delim_whitespace=True)
 
-# make file ID
-file_ids = []
-for d in [_data_path + 'txt/p%d/' % uid for uid in df.ID.values]:
-    file_ids.extend([f[-12:-4] for f in sorted(glob.glob(d + '*.txt'))])
+#
+# process VCTK corpus
+#
 
-# make wave file list
-wav_files = [_data_path + 'wav48/%s/' % f[:4] + f + '.wav' for f in file_ids]
+def process_vctk(csv_file):
 
-# exclude extremely short wave files
-file_id, wav_file = [], []
-for i, w in zip(file_ids, wav_files):
-    if os.stat(w).st_size > 240000:  # at least 5 seconds
-        file_id.append(i)
-        wav_file.append(w)
+    # create csv writer
+    writer = csv.writer(csv_file, delimiter=',')
 
-# read label sentence
-sents = []
-for f in file_id:
-    # remove punctuation, to lower, clean white space
-    s = ' '.join(open(_data_path + 'txt/%s/' % f[:4] + f + '.txt').read()
-                 .translate(None, string.punctuation).lower().split())
-    # append byte code
-    sents.append([ord(ch) for ch in s])
+    # read label-info
+    df = pd.read_table(_data_path + 'VCTK-Corpus/speaker-info.txt', usecols=['ID'],
+                       index_col=False, delim_whitespace=True)
 
-# make vocabulary index
-index2byte = [0] + list(np.unique(list(itertools.chain(*sents))))  # add <EMP> token
-byte2index = {}
-for i, b in enumerate(index2byte):
-    byte2index[b] = i
+    # read file IDs
+    file_ids = []
+    for d in [_data_path + 'VCTK-Corpus/txt/p%d/' % uid for uid in df.ID.values]:
+        file_ids.extend([f[-12:-4] for f in sorted(glob.glob(d + '*.txt'))])
 
-# save vocabulary
-vocabulary_file = _data_path + 'index2byte.pickle'
-with open(vocabulary_file, 'wb') as f:
-    pickle.dump([index2byte, byte2index], f, protocol=pickle.HIGHEST_PROTOCOL)
+    for i, f in enumerate(file_ids):
+
+        # wave file name
+        wave_file = _data_path + 'VCTK-Corpus/wav48/%s/' % f[:4] + f + '.wav'
+
+        # print info
+        print("VCTK corpus preprocessing (%d / %d) - '%s']" % (i, len(file_ids), wave_file))
+
+        # load wave file
+        wave, sr = librosa.load(wave_file, mono=True, sr=None)
+
+        # re-sample ( 48K -> 16K )
+        wave = wave[::3]
+
+        # get mfcc feature
+        mfcc = librosa.feature.mfcc(wave, sr=16000)
+
+        # get label index
+        label = data.str2index(open(_data_path + 'VCTK-Corpus/txt/%s/' % f[:4] + f + '.txt').read())
+
+        # save result ( exclude small mfcc data to prevent ctc loss )
+        if len(label) < mfcc.shape[1]:
+            # filename
+            fn = wave_file.split('/')[-1]
+
+            # save meta info
+            writer.writerow([fn] + label)
+
+            # save mfcc
+            np.save('asset/data/preprocess/mfcc/' + fn + '.npy', mfcc, allow_pickle=False)
+
+
+#
+# process LibriSpeech corpus
+#
+
+def process_libri(csv_file, category):
+
+    parent_path = _data_path + 'LibriSpeech/' + category + '/'
+    labels, wave_files = [], []
+
+    # create csv writer
+    writer = csv.writer(csv_file, delimiter=',')
+
+    # read directory list by speaker
+    speaker_list = glob.glob(parent_path + '*')
+    for spk in speaker_list:
+
+        # read directory list by chapter
+        chapter_list = glob.glob(spk + '/*/')
+        for chap in chapter_list:
+
+            # read label text file list
+            txt_list = glob.glob(chap + '/*.txt')
+            for txt in txt_list:
+                with open(txt, 'rt') as f:
+                    records = f.readlines()
+                    for record in records:
+                        # parsing record
+                        field = record.split('-')  # split by '-'
+                        speaker = field[0]
+                        chapter = field[1]
+                        field = field[2].split()  # split field[2] by ' '
+                        utterance = field[0]  # first column is utterance id
+
+                        # wave file name
+                        wave_file = parent_path + '%s/%s/%s-%s-%s.flac' % \
+                                                  (speaker, chapter, speaker, chapter, utterance)
+                        wave_files.append(wave_file)
+
+                        # label index
+                        labels.append(data.str2index(' '.join(field[1:])))  # last column is text label
+
+    # save results
+    for i, (wave_file, label) in enumerate(zip(wave_files, labels)):
+
+        # print info
+        print("LibriSpeech corpus preprocessing (%d / %d) - '%s']" % (i, len(wave_files), wave_file))
+
+        # load flac file
+        wave, sr, _ = scikits.audiolab.flacread(wave_file)
+
+        # get mfcc feature
+        mfcc = librosa.feature.mfcc(wave, sr=16000)
+
+        # save result ( exclude small mfcc data to prevent ctc loss )
+        if len(label) < mfcc.shape[1]:
+            # filename
+            fn = wave_file.split('/')[-1]
+
+            # save meta info
+            writer.writerow([fn] + label)
+
+            # save mfcc
+            np.save('asset/data/preprocess/mfcc/' + fn + '.npy', mfcc, allow_pickle=False)
+
+
+#
+# process TEDLIUM corpus
+#
+
+def process_ted(csv_file, category):
+
+    parent_path = _data_path + 'TEDLIUM_release2/' + category + '/'
+    labels, wave_files, offsets, durs = [], [], [], []
+
+    # create csv writer
+    writer = csv.writer(csv_file, delimiter=',')
+
+    # read STM file list
+    stm_list = glob.glob(parent_path + 'stm/*')
+    for stm in stm_list:
+        with open(stm, 'rt') as f:
+            records = f.readlines()
+            for record in records:
+                field = record.split()
+
+                # wave file name
+                wave_file = parent_path + 'sph/%s.sph.wav' % field[0]
+                wave_files.append(wave_file)
+
+                # label index
+                labels.append(data.str2index(' '.join(field[6:])))
+
+                # start, end info
+                start, end = float(field[3]), float(field[4])
+                offsets.append(start)
+                durs.append(end - start)
+
+    # save results
+    for i, (wave_file, label, offset, dur) in enumerate(zip(wave_files, labels, offsets, durs)):
+
+        # print info
+        print("TEDLIUM corpus preprocessing (%d / %d) - '%s-%.2f]" % (i, len(wave_files), wave_file, offset))
+
+        # load wave file
+        wave, sr = librosa.load(wave_file, mono=True, sr=None, offset=offset, duration=dur)
+
+        # get mfcc feature
+        mfcc = librosa.feature.mfcc(wave, sr=16000)
+
+        # save result ( exclude small mfcc data to prevent ctc loss )
+        if len(label) < mfcc.shape[1]:
+            # filename
+            fn = "%s-%.2f" % (wave_file.split('/')[-1], offset)
+
+            # save meta info
+            writer.writerow([fn] + label)
+
+            # save mfcc
+            np.save('asset/data/preprocess/mfcc/' + fn + '.npy', mfcc, allow_pickle=False)
+
+
+#
+# Run pre-processing for training
+#
+
+# VCTK corpus
+csv_f = open('asset/data/preprocess/meta/train.csv', 'w')
+process_vctk(csv_f)
+csv_f.close()
+
+# LibriSpeech corpus for train
+csv_f = open('asset/data/preprocess/meta/train.csv', 'a+')
+process_libri(csv_f, 'train-clean-360')
+csv_f.close()
+
+# TEDLIUM corpus for train
+csv_f = open('asset/data/preprocess/meta/train.csv', 'a+')
+process_ted(csv_f, 'train')
+csv_f.close()
+
+#
+# Run pre-processing for validation
+#
+
+# LibriSpeech corpus for valid
+csv_f = open('asset/data/preprocess/meta/valid.csv', 'w')
+process_libri(csv_f, 'dev-clean')
+csv_f.close()
+
+# TEDLIUM corpus for valid
+csv_f = open('asset/data/preprocess/meta/valid.csv', 'a+')
+process_ted(csv_f, 'dev')
+csv_f.close()
+
+#
+# Run pre-processing for testing
+#
+
+# LibriSpeech corpus for test
+csv_f = open('asset/data/preprocess/meta/test.csv', 'w')
+process_libri(csv_f, 'test-clean')
+csv_f.close()
+
+# TEDLIUM corpus for test
+csv_f = open('asset/data/preprocess/meta/test.csv', 'a+')
+process_ted(csv_f, 'test')
+csv_f.close()
 

@@ -13,6 +13,7 @@ tf.sg_verbosity(10)
 
 # command line argument for set_name
 tf.sg_arg_def(set=('valid', "'train', 'valid', or 'test'.  The default is 'valid'"))
+tf.sg_arg_def(frac=(1.0, "test fraction ratio to whole data set. The default is 1.0(=whole set)"))
 
 
 #
@@ -67,8 +68,8 @@ with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
     with tf.sg_queue_context():
 
         # create progress bar
-        iterator = tqdm(range(0, data.num_batch), total=data.num_batch, initial=0,
-                        desc='test', ncols=70, unit='b', leave=False)
+        iterator = tqdm(range(0, int(data.num_batch * tf.sg_arg().frac)), total=int(data.num_batch * tf.sg_arg().frac),
+                        initial=0, desc='test', ncols=70, unit='b', leave=False)
 
         # batch loop
         loss_avg = 0.
@@ -83,8 +84,7 @@ with tf.Session(config=tf.ConfigProto(allow_soft_placement=True)) as sess:
                 loss_avg += np.mean(batch_loss)
 
         # final average
-        loss_avg /= data.num_batch
+        loss_avg /= data.num_batch * tf.sg_arg().frac
 
     # logging
-    tf.sg_info('Testing finished on %s.(CTC loss=%f)' %
-               (tf.sg_arg().set.upper(), loss_avg))
+    tf.sg_info('Testing finished on %s.(CTC loss=%f)' % (tf.sg_arg().set.upper(), loss_avg))

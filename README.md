@@ -22,30 +22,91 @@ The final architecture is shown in the following figure.
 (Some images are cropped from [WaveNet: A Generative Model for Raw Audio](https://arxiv.org/abs/1609.03499) and [Neural Machine Translation in Linear Time](https://arxiv.org/abs/1610.10099))  
 
 
-## Dependencies
+## Version 
 
-1. [tensorflow](https://www.tensorflow.org/versions/r0.11/get_started/os_setup.html#pip-installation) >= 0.11
-1. [sugartensor](https://github.com/buriburisuri/sugartensor) >= 0.0.1.9
-1. [pandas](http://pandas.pydata.org/pandas-docs/stable/install.html) >= 0.19.1
-1. [librosa](https://github.com/librosa/librosa) >= 0.4.3
+Current Version : __***0.0.0.2***__
+
+## Dependencies ( VERSION MUST BE MATCHED EXACTLY! )
+
+1. [tensorflow](https://www.tensorflow.org/versions/r0.11/get_started/os_setup.html#pip-installation) == 1.0.0
+1. [sugartensor](https://github.com/buriburisuri/sugartensor) == 1.0.0.2
+1. [pandas](http://pandas.pydata.org/pandas-docs/stable/install.html) >= 0.19.2
+1. [librosa](https://github.com/librosa/librosa) == 0.5.0
+1. [scikits.audiolab](https://pypi.python.org/pypi/scikits.audiolab)==0.11.0
+
+If you have problems with the librosa library, try to install ffmpeg by the following command. ( Ubuntu 14.04 )  
+<pre><code>
+sudo add-apt-repository ppa:mc3man/trusty-media
+sudo apt-get update
+sudo apt-get dist-upgrade -y
+sudo apt-get -y install ffmpeg
+</code></pre>
 
 ## Dataset
 
-We used only 36,395 sentences in the VCTK corpus with a length of more than 5 seconds to prevent CTC loss errors. VCTK corpus can be downloaded from [http://homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz](http://homepages.inf.ed.ac.uk/jyamagis/release/VCTK-Corpus.tar.gz). After downloading, extract the 'VCTK-Corpus.tar.gz' file to the 'asset/data/' directory.
+We used [VCTK](http://homepages.inf.ed.ac.uk/jyamagis/page3/page58/page58.html), 
+[LibriSpeech](http://www.openslr.org/12/) and [TEDLIUM release 2](http://www-lium.univ-lemans.fr/en/content/ted-lium-corpus) corpus.
+Total number of sentences in the training set composed of the above three corpus is 240,612. 
+Valid and test set is built using only LibriSpeech and TEDLIUM corpuse, because VCTK corpus does not have valid and test set. 
+After downloading the each corpus, extract them in the 'asset/data/VCTK-Corpus', 'asset/data/LibriSpeech' and 
+ 'asset/data/TEDLIUM_release2' directories. 
+ 
+Audio was augmented by the scheme in the [Tom Ko et al](http://speak.clsp.jhu.edu/uploads/publications/papers/1050_pdf.pdf)'s paper. 
+(Thanks @migvel for your kind information)  
+
+## Pre-processing dataset
+
+The TEDLIUM release 2 dataset provides audio data in the SPH format, so we should convert them to some format 
+librosa library can handle. Run the following command in the 'asset/data' directory convert SPH to wave format.  
+<pre><code>
+find -type f -name '*.sph' | awk '{printf "sox -t sph %s -b 16 -t wav %s\n", $0, $0".wav" }' | bash
+</code></pre>
+
+If you don't have installed `sox`, please installed it first.
+<pre><code>
+sudo apt-get install sox
+</code></pre>
+
+We found the main bottle neck is disk read time when training, so we decide to pre-process the whole audio data into 
+  the MFCC feature files which is much smaller. And we highly recommend using SSD instead of hard drive.  
+  Run the following command in the console to pre-process whole dataset.
+<pre><code>
+python preprocess.py
+</code></pre>
+ 
 
 ## Training the network
 
 Execute
 <pre><code>
-python train.py
+python train.py ( <== Use all available GPUs )
+or
+CUDA_VISIBLE_DEVICES=0,1 python train.py ( <== Use only GPU 0, 1 )
 </code></pre>
 to train the network. You can see the result ckpt files and log files in the 'asset/train' directory.
 Launch tensorboard --logdir asset/train/log to monitor training process.
 
-We've trained this model on a single Titan X GPU during 30 hours until 20 epochs and the model stopped at 19.8 ctc loss. If you don't have a Titan X GPU, reduce batch_size in the train.py file from 16 to 4.  
-<p align="center">
-  <img src="https://raw.githubusercontent.com/buriburisuri/speech-to-text-wavenet/master/png/loss.png" width="1024"/>
-</p>
+We've trained this model on a 3 Nvidia 1080 Pascal GPUs during 40 hours until 50 epochs and we picked the epoch when the 
+validatation loss is minimum. In our case, it is epoch 40.  If you face the out of memory error, 
+reduce batch_size in the train.py file from 16 to 4.  
+
+The CTC losses at each epoch are as following table:
+
+| epoch | train set | valid set | test set | 
+| :------------- | :------------- | :------------- |
+| 20 | 79.5415 | 73.645237 | 83.607269 |
+| 30 | 72.884180 | 69.738348 | 80.145867 |
+| 40 | 69.948266 | 66.834316 | 77.316114 |
+| 50 | 69.127240 | 67.639895 | 77.866674 |
+
+
+## Testing the network
+
+After training finished, you can check valid or test set CTC loss by the following command.
+<pre><code>
+python test.py --set train|valid|test --frac 1.0(0.01~1.0)
+</code></pre>
+The `frac` option will be useful if you want to test only the fraction of dataset for fast evaluation. 
 
 ## Transforming speech wave file to English text 
  
@@ -57,25 +118,45 @@ to transform a speech wave file to the English sentence. The result will be prin
 
 For example, try the following command.
 <pre><code>
-python recognize.py --file asset/data/wav48/p225/p225_003.wav
+python recognize.py --file asset/data/LibriSpeech/test-clean/1089/134686/1089-134686-0000.flac
+python recognize.py --file asset/data/LibriSpeech/test-clean/1089/134686/1089-134686-0001.flac
+python recognize.py --file asset/data/LibriSpeech/test-clean/1089/134686/1089-134686-0002.flac
+python recognize.py --file asset/data/LibriSpeech/test-clean/1089/134686/1089-134686-0003.flac
+python recognize.py --file asset/data/LibriSpeech/test-clean/1089/134686/1089-134686-0004.flac
 </code></pre>
 
 The result will be as follows:
 <pre><code>
-six spons of fresh snow peas five thick slbs of blue these and maybe a stack for her brother bob
+he hoped there would be stoo for dinner turnips and charrats and bruzed patatos and fat mutton pieces to be ladled out in th thick peppered flower fatan sauce
+stuffid into you his belly counsiled him
+after early night fall the yetl lampse woich light hop here and there on the squalled quarter of the browfles
+o berty and he god in your mind
+numbrt tan fresh nalli is waiting on nou cold nit husband
 </code></pre>
 
 The ground truth is as follows:
 <pre><code>
-Six spoons of fresh snow peas, five thick slabs of blue cheese, and maybe a snack for her brother Bob.
+HE HOPED THERE WOULD BE STEW FOR DINNER TURNIPS AND CARROTS AND BRUISED POTATOES AND FAT MUTTON PIECES TO BE LADLED OUT IN THICK PEPPERED FLOUR FATTENED SAUCE
+STUFF IT INTO YOU HIS BELLY COUNSELLED HIM
+AFTER EARLY NIGHTFALL THE YELLOW LAMPS WOULD LIGHT UP HERE AND THERE THE SQUALID QUARTER OF THE BROTHELS
+HELLO BERTIE ANY GOOD IN YOUR MIND
+NUMBER TEN FRESH NELLY IS WAITING ON YOU GOOD NIGHT HUSBAND
 </code></pre>
 
 As mentioned earlier, there is no language model, so there are some cases where capital letters, punctuations, and words are misspelled.
 
+## Future works
+
+1. Language Model
+1. Polyglot(Multi-lingual) Model
+
+We think that we should replace CTC beam decoder with a practical language model  
+and the polyglot speech recognition model will be a good candidate to future works.
+
 ## pre-trained models
 
 You can transform a speech wave file to English text with the pre-trained model on the VCTK corpus. 
-Extract [the following zip file](https://drive.google.com/file/d/0B3ILZKxzcrUydklJTXgyRzRwUzQ/view?usp=sharing) to the 'asset/train/ckpt/' directory.
+Extract [the following zip file](https://drive.google.com/file/d/0B3ILZKxzcrUydklJTXgyRzRwUzQ/view?usp=sharing) to the 'asset/train/' directory.
 
 ## Other resources
 
@@ -102,7 +183,6 @@ Kim and Park. Speech-to-Text-WaveNet. 2016. GitHub repository. https://github.co
 
 # Authors
 
-Namju Kim (buriburisuri@gmail.com) at Jamonglabs Co., Ltd.
+Namju Kim (namju.kim@kakaocorp.com) at KakaoBrain Corp.
 
-Kyubyong Park (kbpark@jamonglab.com) at Jamonglabs Co., Ltd.
-
+Kyubyong Park (kbpark@jamonglab.com) at KakaoBrain Corp.

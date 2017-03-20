@@ -1,4 +1,4 @@
-FROM sugartensor/sugartensor:1.0.0.2
+FROM sugartensor/sugartensor:1.0.0.2-cpu
 MAINTAINER Namju Kim namju.kim@kakaocorp.com
 
 # ffmpeg requirements
@@ -11,7 +11,7 @@ RUN apt-get -y install ffmpeg
 RUN pip install --upgrade pip
 RUN pip install pandas==0.19.2
 RUN pip install librosa==0.5.0
-RUN pip install scikits.audiolab==0.11.0
+#RUN pip install scikits.audiolab==0.11.0
 
 # copy pre-trained weight and some sample audio data
 RUN mkdir -p /root/speech-to-text-wavenet/

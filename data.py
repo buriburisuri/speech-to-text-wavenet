@@ -1,142 +1,146 @@
-# -*- coding: utf-8 -*-
 import sugartensor as tf
 import numpy as np
-import pandas as pd
-import librosa
-import glob
-import os
+import csv
 import string
-import itertools
 
 
-__author__ = 'buriburisuri@gmail.com'
-__vocabulary_save_dir__ = "asset/train/"
+__author__ = 'namju.kim@kakaobrain.com'
 
 
-class VCTK(object):
+# default data path
+_data_path = 'asset/data/'
 
-    def __init__(self, batch_size=16, data_path='asset/data/', vocabulary_loading=False):
+#
+# vocabulary table
+#
 
-        @tf.sg_producer_func
-        def _load_mfcc(src_list):
-            lab, wav = src_list  # label, wave_file
-            # decode string to integer
-            lab = np.fromstring(lab, np.int)
-            # load wave file
-            wav, sr = librosa.load(wav, mono=True)
-            # mfcc
-            mfcc = librosa.feature.mfcc(wav, sr)
-            # return result
-            return lab, mfcc
+# index to byte mapping
+index2byte = ['<EMP>', ' ', 'a', 'b', 'c', 'd', 'e', 'f', 'g',
+              'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q',
+              'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
 
-        # path for loading just vocabulary
-        if vocabulary_loading:
-            vocabulary_file = __vocabulary_save_dir__ + self.__class__.__name__ + '_vocabulary.npy'
-            if os.path.exists(vocabulary_file):
-                self.index2byte = np.load(vocabulary_file)
-                self.byte2index = {}
-                for i, b in enumerate(self.index2byte):
-                    self.byte2index[b] = i
-                self.voca_size = len(self.index2byte)
-                tf.sg_info('VCTK vocabulary loaded.')
-                return
+# byte to index mapping
+byte2index = {}
+for i, ch in enumerate(index2byte):
+    byte2index[ch] = i
 
-        # load corpus
-        labels, wave_files = self._load_corpus(data_path)
+# vocabulary size
+voca_size = len(index2byte)
+
+
+# convert sentence to index list
+def str2index(str_):
+
+    # clean white space
+    str_ = ' '.join(str_.split())
+    # remove punctuation and make lower case
+    str_ = str_.translate(None, string.punctuation).lower()
+
+    res = []
+    for ch in str_:
+        try:
+            res.append(byte2index[ch])
+        except KeyError:
+            # drop OOV
+            pass
+    return res
+
+
+# convert index list to string
+def index2str(index_list):
+    # transform label index to character
+    str_ = ''
+    for ch in index_list:
+        if ch > 0:
+            str_ += index2byte[ch]
+        elif ch == 0:  # <EOS>
+            break
+    return str_
+
+
+# print list of index list
+def print_index(indices):
+    for index_list in indices:
+        print(index2str(index_list))
+
+
+# real-time wave to mfcc conversion function
+@tf.sg_producer_func
+def _load_mfcc(src_list):
+
+    # label, wave_file
+    label, mfcc_file = src_list
+
+    # decode string to integer
+    label = np.fromstring(label, np.int)
+
+    # load mfcc
+    mfcc = np.load(mfcc_file, allow_pickle=False)
+
+    # speed perturbation augmenting
+    mfcc = _augment_speech(mfcc)
+
+    return label, mfcc
+
+
+def _augment_speech(mfcc):
+
+    # random frequency shift ( == speed perturbation effect on MFCC )
+    r = np.random.randint(-2, 2)
+
+    # shifting mfcc
+    mfcc = np.roll(mfcc, r, axis=0)
+
+    # zero padding
+    if r > 0:
+        mfcc[:r, :] = 0
+    elif r < 0:
+        mfcc[r:, :] = 0
+
+    return mfcc
+
+
+# Speech Corpus
+class SpeechCorpus(object):
+
+    def __init__(self, batch_size=16, set_name='train'):
+
+        # load meta file
+        label, mfcc_file = [], []
+        with open(_data_path + 'preprocess/meta/%s.csv' % set_name) as csv_file:
+            reader = csv.reader(csv_file, delimiter=',')
+            for row in reader:
+                # mfcc file
+                mfcc_file.append(_data_path + 'preprocess/mfcc/' + row[0] + '.npy')
+                # label info ( convert to string object for variable-length support )
+                label.append(np.asarray(row[1:], dtype=np.int).tostring())
 
         # to constant tensor
-        label = tf.convert_to_tensor(labels)
-        wave_file = tf.convert_to_tensor(wave_files)
+        label_t = tf.convert_to_tensor(label)
+        mfcc_file_t = tf.convert_to_tensor(mfcc_file)
 
         # create queue from constant tensor
-        label, wave_file = tf.train.slice_input_producer([label, wave_file], shuffle=True)
+        label_q, mfcc_file_q \
+            = tf.train.slice_input_producer([label_t, mfcc_file_t], shuffle=True)
 
-        # decode wave file
-        label, mfcc = _load_mfcc(source=[label, wave_file], dtypes=[tf.sg_intx, tf.sg_floatx],
-                                 capacity=128, num_threads=32)
+        # create label, mfcc queue
+        label_q, mfcc_q = _load_mfcc(source=[label_q, mfcc_file_q],
+                                     dtypes=[tf.sg_intx, tf.sg_floatx],
+                                     capacity=256, num_threads=64)
 
         # create batch queue with dynamic pad
-        batch_queue = tf.train.batch([label, mfcc], batch_size,
+        batch_queue = tf.train.batch([label_q, mfcc_q], batch_size,
                                      shapes=[(None,), (20, None)],
-                                     num_threads=32, capacity=batch_size*48,
+                                     num_threads=64, capacity=batch_size*32,
                                      dynamic_pad=True)
 
         # split data
         self.label, self.mfcc = batch_queue
         # batch * time * dim
         self.mfcc = self.mfcc.sg_transpose(perm=[0, 2, 1])
-
         # calc total batch count
-        self.num_batch = len(labels) // batch_size
+        self.num_batch = len(label) // batch_size
 
         # print info
-        tf.sg_info('VCTK corpus loaded.(total data=%d, total batch=%d)' % (len(labels), self.num_batch))
-
-    def _load_corpus(self, data_path):
-
-        # read meta-info
-        df = pd.read_table(data_path + 'speaker-info.txt', usecols=['ID', 'AGE', 'GENDER', 'ACCENTS'],
-                           index_col=False, delim_whitespace=True)
-
-        # make file ID
-        file_ids = []
-        for d in [data_path + 'txt/p%d/' % uid for uid in df.ID.values]:
-            file_ids.extend([f[-12:-4] for f in sorted(glob.glob(d + '*.txt'))])
-
-        # make wave file list
-        wav_files = [data_path + 'wav48/%s/' % f[:4] + f + '.wav' for f in file_ids]
-
-        # exclude extremely short wave files
-        file_id, wav_file = [], []
-        for i, w in zip(file_ids, wav_files):
-            if os.stat(w).st_size > 240000:  # at least 5 seconds
-                file_id.append(i)
-                wav_file.append(w)
-
-        # read label sentence
-        sents = []
-        for f in file_id:
-            # remove punctuation, to lower, clean white space
-            s = ' '.join(open(data_path + 'txt/%s/' % f[:4] + f + '.txt').read()
-                         .translate(None, string.punctuation).lower().split())
-            # append byte code
-            sents.append([ord(ch) for ch in s])
-
-        # make vocabulary
-        self.index2byte = [0] + list(np.unique(list(itertools.chain(*sents))))  # add <EMP> token
-        self.byte2index = {}
-        for i, b in enumerate(self.index2byte):
-            self.byte2index[b] = i
-        self.voca_size = len(self.index2byte)
-        self.max_len = np.max([len(s) for s in sents])
-
-        # save vocabulary
-        vocabulary_dir = __vocabulary_save_dir__ + self.__class__.__name__
-        if not os.path.exists(os.path.dirname(vocabulary_dir)):
-            try:
-                os.makedirs(os.path.dirname(vocabulary_dir))
-            except OSError as exc: # Guard against race condition
-                if exc.errno != errno.EEXIST:
-                    raise
-        vocabulary_file = vocabulary_dir + '_vocabulary.npy'
-        if not os.path.exists(vocabulary_file):
-            np.save(vocabulary_file, self.index2byte)
-
-        # byte to index label
-        label = []
-        for s in sents:
-            # save as string for variable-length support.
-            label.append(np.asarray([self.byte2index[ch] for ch in s]).tostring())
-
-        return label, wav_file
-
-    def print_index(self, indices):
-        # transform label index to character
-        for i, index in enumerate(indices):
-            str_ = ''
-            for ch in index:
-                if ch > 0:
-                    str_ += unichr(self.index2byte[ch])
-                elif ch == 0:  # <EOS>
-                    break
-            print str_
+        tf.sg_info('%s set loaded.(total data=%d, total batch=%d)'
+                   % (set_name.upper(), len(label), self.num_batch))
