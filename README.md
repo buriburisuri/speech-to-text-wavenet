@@ -93,7 +93,7 @@ reduce batch_size in the train.py file from 16 to 4.
 The CTC losses at each epoch are as following table:
 
 | epoch | train set | valid set | test set | 
-| :------------- | :------------- | :------------- |
+| :-------------: | -------------: | -------------: | -------------: |
 | 20 | 79.5415 | 73.645237 | 83.607269 |
 | 30 | 72.884180 | 69.738348 | 80.145867 |
 | 40 | 69.948266 | 66.834316 | 77.316114 |
@@ -145,6 +145,15 @@ NUMBER TEN FRESH NELLY IS WAITING ON YOU GOOD NIGHT HUSBAND
 
 As mentioned earlier, there is no language model, so there are some cases where capital letters, punctuations, and words are misspelled.
 
+## pre-trained models
+
+You can transform a speech wave file to English text with the pre-trained model on the VCTK corpus. 
+Extract [the following zip file](https://drive.google.com/file/d/0B3ILZKxzcrUydklJTXgyRzRwUzQ/view?usp=sharing) to the 'asset/train/' directory.
+
+## Docker support
+
+See docker [README.md](docker/README.md).
+
 ## Future works
 
 1. Language Model
@@ -152,11 +161,6 @@ As mentioned earlier, there is no language model, so there are some cases where 
 
 We think that we should replace CTC beam decoder with a practical language model  
 and the polyglot speech recognition model will be a good candidate to future works.
-
-## pre-trained models
-
-You can transform a speech wave file to English text with the pre-trained model on the VCTK corpus. 
-Extract [the following zip file](https://drive.google.com/file/d/0B3ILZKxzcrUydklJTXgyRzRwUzQ/view?usp=sharing) to the 'asset/train/' directory.
 
 ## Other resources
 
