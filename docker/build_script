@@ -1,0 +1,13 @@
+# run the following command on the speech-to-text-wavenet directory.
+docker build -t speech-to-text-wavenet -f docker/Dockerfile .
+
+# attach tag
+docker tag image_id buriburisuri/speech-to-text-wavenet:latest
+docker tag image_id buriburisuri/speech-to-text-wavenet:0.0.0.2
+
+# docker login
+docker login
+
+# push to dockerhub
+docker push buriburisuri/speech-to-text-wavenet:latest
+docker push buriburisuri/speech-to-text-wavenet:0.0.0.2

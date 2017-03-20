@@ -24,7 +24,7 @@ num_dim = 128      # latent dimension
 #
 
 # VCTK corpus input tensor ( with QueueRunner )
-data = VCTK()
+data = VCTK(vocabulary_loading=True)
 
 # vocabulary size
 voca_size = data.voca_size
