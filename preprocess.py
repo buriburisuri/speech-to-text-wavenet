@@ -5,6 +5,7 @@ import csv
 import librosa
 import scikits.audiolab
 import data
+import os
 
 
 __author__ = 'namju.kim@kakaobrain.com'
@@ -183,6 +184,17 @@ def process_ted(csv_file, category):
 
             # save mfcc
             np.save('asset/data/preprocess/mfcc/' + fn + '.npy', mfcc, allow_pickle=False)
+
+
+#
+# Create directories
+#
+if not os.path.exists('asset/data/preprocess'):
+    os.makedirs('asset/data/preprocess')
+if not os.path.exists('asset/data/preprocess/meta'):
+    os.makedirs('asset/data/preprocess/meta')
+if not os.path.exists('asset/data/preprocess/mfcc'):
+    os.makedirs('asset/data/preprocess/mfcc')
 
 
 #
