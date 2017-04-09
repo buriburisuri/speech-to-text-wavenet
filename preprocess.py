@@ -6,7 +6,7 @@ import librosa
 import scikits.audiolab
 import data
 import os
-
+import subprocess
 
 __author__ = 'namju.kim@kakaobrain.com'
 
@@ -37,7 +37,10 @@ def process_vctk(csv_file):
 
         # wave file name
         wave_file = _data_path + 'VCTK-Corpus/wav48/%s/' % f[:4] + f + '.wav'
-
+        fn = wave_file.split('/')[-1]
+        target_filename = 'asset/data/preprocess/mfcc/' + fn + '.npy'
+        if os.path.exists( target_filename ):
+            continue
         # print info
         print("VCTK corpus preprocessing (%d / %d) - '%s']" % (i, len(file_ids), wave_file))
 
@@ -55,14 +58,10 @@ def process_vctk(csv_file):
 
         # save result ( exclude small mfcc data to prevent ctc loss )
         if len(label) < mfcc.shape[1]:
-            # filename
-            fn = wave_file.split('/')[-1]
-
             # save meta info
             writer.writerow([fn] + label)
-
             # save mfcc
-            np.save('asset/data/preprocess/mfcc/' + fn + '.npy', mfcc, allow_pickle=False)
+            np.save(target_filename, mfcc, allow_pickle=False)
 
 
 #
@@ -108,7 +107,10 @@ def process_libri(csv_file, category):
 
     # save results
     for i, (wave_file, label) in enumerate(zip(wave_files, labels)):
-
+        fn = wave_file.split('/')[-1]
+        target_filename = 'asset/data/preprocess/mfcc/' + fn + '.npy'
+        if os.path.exists( target_filename ):
+            continue
         # print info
         print("LibriSpeech corpus preprocessing (%d / %d) - '%s']" % (i, len(wave_files), wave_file))
 
@@ -121,18 +123,23 @@ def process_libri(csv_file, category):
         # save result ( exclude small mfcc data to prevent ctc loss )
         if len(label) < mfcc.shape[1]:
             # filename
-            fn = wave_file.split('/')[-1]
 
             # save meta info
             writer.writerow([fn] + label)
 
             # save mfcc
-            np.save('asset/data/preprocess/mfcc/' + fn + '.npy', mfcc, allow_pickle=False)
+            np.save(target_filename, mfcc, allow_pickle=False)
 
 
 #
 # process TEDLIUM corpus
 #
+def convert_sph( sph, wav ):
+    """Convert an sph file into wav format for further processing"""
+    command = [
+        'sox','-t','sph', sph, '-b','16','-t','wav', wav
+    ]
+    subprocess.check_call( command ) # Did you install sox (apt-get install sox)
 
 def process_ted(csv_file, category):
 
@@ -164,11 +171,19 @@ def process_ted(csv_file, category):
 
     # save results
     for i, (wave_file, label, offset, dur) in enumerate(zip(wave_files, labels, offsets, durs)):
-
+        fn = "%s-%.2f" % (wave_file.split('/')[-1], offset)
+        target_filename = 'asset/data/preprocess/mfcc/' + fn + '.npy'
+        if os.path.exists( target_filename ):
+            continue
         # print info
         print("TEDLIUM corpus preprocessing (%d / %d) - '%s-%.2f]" % (i, len(wave_files), wave_file, offset))
-
         # load wave file
+        if not os.path.exists( wave_file ):
+            sph_file = wave_file.rsplit('.',1)[0]
+            if os.path.exists( sph_file ):
+                convert_sph( sph_file, wave_file )
+            else:
+                raise RuntimeError("Missing sph file from TedLium corpus at %s"%(sph_file))
         wave, sr = librosa.load(wave_file, mono=True, sr=None, offset=offset, duration=dur)
 
         # get mfcc feature
@@ -177,13 +192,12 @@ def process_ted(csv_file, category):
         # save result ( exclude small mfcc data to prevent ctc loss )
         if len(label) < mfcc.shape[1]:
             # filename
-            fn = "%s-%.2f" % (wave_file.split('/')[-1], offset)
 
             # save meta info
             writer.writerow([fn] + label)
 
             # save mfcc
-            np.save('asset/data/preprocess/mfcc/' + fn + '.npy', mfcc, allow_pickle=False)
+            np.save(target_filename, mfcc, allow_pickle=False)
 
 
 #
