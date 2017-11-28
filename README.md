@@ -165,7 +165,7 @@ and the polyglot speech recognition model will be a good candidate to future wor
 ## Other resources
 
 1. [ibab's WaveNet(speech synthesis) tensorflow implementation](https://github.com/ibab/tensorflow-wavenet)
-1. [tomlepaine's Fast WaveNet(speech synthesis) tensorflow implementation](https://github.com/ibab/tensorflow-wavenet)
+1. [tomlepaine's Fast WaveNet(speech synthesis) tensorflow implementation](https://github.com/tomlepaine/fast-wavenet)
 
 ## Namju's other repositories
 
