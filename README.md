@@ -148,7 +148,7 @@ As mentioned earlier, there is no language model, so there are some cases where 
 ## pre-trained models
 
 You can transform a speech wave file to English text with the pre-trained model on the VCTK corpus. 
-Extract [the following zip file](https://drive.google.com/open?id=0B3ILZKxzcrUyVWwtT25FemZEZ1k) to the 'asset/train/' directory.
+Extract [the following zip file](https://drive.google.com/file/d/0B3ILZKxzcrUyVWwtT25FemZEZ1k/view?usp=sharing&resourcekey=0-R4oPytT6GC2AGiIGi8L_ag) to the 'asset/train/' directory.
 
 ## Docker support
 
