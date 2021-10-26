@@ -4,14 +4,15 @@ import numpy as np
 import librosa
 from model import *
 import data
-
+import os
+import sys
 
 __author__ = 'namju.kim@kakaobrain.com'
 
 
 # set log level to debug
 tf.sg_verbosity(10)
-
+data_dir = 'asset/train'
 #
 # hyper parameters
 #
@@ -52,6 +53,8 @@ wav, _ = librosa.load(tf.sg_arg().file, mono=True, sr=16000)
 # get mfcc feature
 mfcc = np.transpose(np.expand_dims(librosa.feature.mfcc(wav, 16000), axis=0), [0, 2, 1])
 
+specified_epoch = next(int((i.split('=')[-1]) for i in sys.argv if i.startswith('epoch')), False)
+
 # run network
 with tf.Session() as sess:
 
@@ -60,7 +63,13 @@ with tf.Session() as sess:
 
     # restore parameters
     saver = tf.train.Saver()
-    saver.restore(sess, tf.train.latest_checkpoint('asset/train'))
+
+    if specified_epoch:
+        fs = [i for i in os.listdir(data_dir) if i.endswith('.ckpt')]
+        fpath = os.path.join(data_dir, fs[specified_epoch])
+        saver.restore(sess, fpath)
+    else:
+        saver.restore(sess, tf.train.latest_checkpoint(data_dir))
     # run session
     label = sess.run(y, feed_dict={x: mfcc})
 

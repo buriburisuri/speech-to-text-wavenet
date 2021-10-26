@@ -59,7 +59,7 @@ Audio was augmented by the scheme in the [Tom Ko et al](http://speak.clsp.jhu.ed
 The TEDLIUM release 2 dataset provides audio data in the SPH format, so we should convert them to some format 
 librosa library can handle. Run the following command in the 'asset/data' directory convert SPH to wave format.  
 <pre><code>
-find -type f -name '*.sph' | awk '{printf "sox -t sph %s -b 16 -t wav %s\n", $0, $0".wav" }' | bash
+find . -type f -name '*.sph' | awk '{printf "sox -t sph %s -b 16 -t wav %s\n", $0, $0".wav" }' | bash
 </code></pre>
 
 If you don't have installed `sox`, please installed it first.
